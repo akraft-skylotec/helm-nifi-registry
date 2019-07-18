@@ -1,0 +1,29 @@
+.DS_Store
+# Common VCS dirs
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+# Common backup files
+**/charts/*.gz
+**/charts/*.tgz
+scripts/tmp
+.DS_Store
+*.swp
+*.bak
+*.tmp
+*~
+# Various IDEs
+.project
+.idea/
+*.tmproj
+# Temp files
+*.lock
+# Packed files
+*.tgz
+# OWNERS file for Kubernetes
+OWNERS
+
