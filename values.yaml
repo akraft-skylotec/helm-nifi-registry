@@ -38,15 +38,15 @@ persistence:
     enabled: true
     storageSize: 4Gi
 
-    # # choose one and only one of the following (StaticPV wins if both are defined)
+    # # choose one and only one of the following: dynamic or existingPV (existingPV wins if both are defined)
 
     dynamic:
       accessModes: ReadWriteOnce
       storageClass: default
 
-    #existingPV:
-    #  accessModes: ReadWriteOnce
-    #  storageClassName: slow
+    # existingPV:
+    #   accessModes: ReadWriteOnce
+    #   storageClassName: slow
 
 flow_persistence:
   # https://dzone.com/articles/quick-tip-using-git-with-nifi-registry-in-docker
