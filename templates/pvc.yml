@@ -1,12 +1,12 @@
 {{- if .Values.persistence.enabled }}
 {{- if .Values.persistence.nifiSingleDisk }}
 {{- if .Values.persistence.nifiSingleDisk.enabled }}
-{{- if .Values.persistence.nifiSingleDisk.azureFile }}
+{{- if .Values.persistence.nifiSingleDisk.existingPV }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ template "nifireg.svcname" . }}--single--azfile-pvc
+  name: {{ template "nifireg.svcname" . }}--single--pvc
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "nifireg.fullname" . }}
@@ -15,15 +15,11 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   accessModes:
-    - ReadWriteMany
-  storageClassName: "{{ .Values.persistence.nifiSingleDisk.azureFile.storageClass |default "" }}"
-  selector:
-    matchLabels:
-      # we are forcing this to be static assignment based on a label...
-      hszName: {{ .Release.Name }}--azfile
+    - {{ .Values.persistence.nifiSingleDisk.existingPV.accessModes |default "ReadWriteOnce" }}
+  storageClassName: "{{ .Values.persistence.nifiSingleDisk.existingPV.storageClass |default "slow" }}"
   resources:
     requests:
-      storage: {{ .Values.azureFile_size |default "1Gi" }}
+      storage: {{ .Values.persistence.nifiSingleDisk.storageSize |default "1Gi" }}
 {{- end }}
 {{- end }}
 {{- end }}

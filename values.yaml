@@ -1,9 +1,8 @@
 ---
 
 image:
-  #repository: "apache/nifi-registry"
-  repository: "ez123/apache-nifi-registry"
-  tag:        "0.3.0"
+  repository: "apache/nifi-registry"
+  tag:        "0.4.0"
 
 ## Kubernetes configuration
 ## For minikube, set this to NodePort, elsewhere use LoadBalancer
@@ -39,15 +38,15 @@ persistence:
     enabled: true
     storageSize: 4Gi
 
-    # # choose one and only one of the following (azureFile wins if both are defined)
+    # # choose one and only one of the following (StaticPV wins if both are defined)
 
-    # dynamic:
-    #   storageClass: default
+    dynamic:
+      accessModes: ReadWriteOnce
+      storageClass: default
 
-    # azureFile:
-    #   secretName: azfiles--nifireg
-    #   # shareName: nifireg
-    #
+    #existingPV:
+    #  accessModes: ReadWriteOnce
+    #  storageClassName: slow
 
 flow_persistence:
   # https://dzone.com/articles/quick-tip-using-git-with-nifi-registry-in-docker

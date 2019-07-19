@@ -336,8 +336,8 @@ spec:
       {{- if and  .Values.persistence.nifiSingleDisk .Values.persistence.nifiSingleDisk.enabled }}
         - name: "nifireg-single"
           persistentVolumeClaim:
-      {{-   if .Values.persistence.nifiSingleDisk.azureFile }}
-            claimName: "{{ template "nifireg.svcname" . }}--single--azfile-pvc"
+      {{-   if .Values.persistence.nifiSingleDisk.existingPV }}
+            claimName: "{{ template "nifireg.svcname" . }}--single--pvc"
       {{-   else if .Values.persistence.nifiSingleDisk.dynamic }}
             claimName: "{{ template "nifireg.svcname" . }}--single--dyn-pvc"
       {{-   else }}
