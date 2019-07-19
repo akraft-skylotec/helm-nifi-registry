@@ -215,8 +215,8 @@ spec:
             - { name: "NIFI_REGISTRY_FLOW_STORAGE_DIR", value: {{ .Values.flow_persistence.git.flow_dir |default "./flow_git" |quote }} }
           {{-       if .Values.flow_persistence.git.secretName }}
             # using external secret
-            - { name: "NIFI_REGISTRY_GIT_USER",      valueFrom: { secretKeyRef: { name: {{ .Values.flow_persistence.git.secretName }}, key: "user" } } }
-            - { name: "NIFI_REGISTRY_GIT_PASSWORD",  valueFrom: { secretKeyRef: { name: {{ .Values.flow_persistence.git.secretName }}, key: "pass" } } }
+            - { name: "NIFI_REGISTRY_GIT_USER",      valueFrom: { secretKeyRef: { name: {{ .Values.flow_persistence.git.secretName.user }}, key: "user" } } }
+            - { name: "NIFI_REGISTRY_GIT_PASSWORD",  valueFrom: { secretKeyRef: { name: {{ .Values.flow_persistence.git.secretName.pass }}, key: "pass" } } }
           {{-       else }}
             # using external secret
           {{-         if .Values.flow_persistence.git.user }}
