@@ -41,11 +41,11 @@ persistence:
     # # choose one and only one of the following: dynamic or existingPV (existingPV wins if both are defined)
 
     # dynamic:
-    #   accessModes: ReadWriteOnce
+    #   accessModes: ReadWriteMany
     #   storageClass: default
 
     # existingPV:
-    #   accessModes: ReadWriteOnce
+    #   accessModes: ReadWriteMany
     #   storageClassName: slow
 
 flow_persistence:
@@ -56,8 +56,10 @@ flow_persistence:
     # repo_uri:   "gitlab.com/git-user/repo-name"
     remote: origin
     # Use a Secret resource or Usr & Pwd
+    
     # secretName:
     #  user:
     #  pass:
-    user: machinemx
-    pass: Sistemas.001
+
+    # user:
+    # pass:

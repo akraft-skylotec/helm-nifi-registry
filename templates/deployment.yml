@@ -291,46 +291,6 @@ spec:
             # persistence disabled
           {{- end }}
 
-        - name: devops
-          image: {{ .Values.opsBaseDockerImage |default "ez123/ops-base:alpine38" }}
-          imagePullPolicy: Always
-          command: [ "/bin/bash" ]
-          args:    [ "-c", "while true; do date -u; sleep 900; done" ]
-          volumeMounts:
-          {{- if .Values.persistence.enabled }}
-            # # persistence enabled...
-          {{- if and .Values.persistence.nifiSingleDisk .Values.persistence.nifiSingleDisk.enabled }}
-            # # persistence enabled, single disk
-            - { mountPath: /mnt/nifireg-conf,         name: "nifireg-single", subPath: "nifireg/conf" }
-            - { mountPath: /mnt/nifireg-database,     name: "nifireg-single", subPath: "nifireg/database" }
-            - { mountPath: /mnt/nifireg-logs,         name: "nifireg-single", subPath: "nifireg/logs" }
-            - { mountPath: /mnt/nifireg-flow_storage, name: "nifireg-single", subPath: "nifireg/flow_storage" }
-          {{-   if .Values.flow_persistence.mode }}
-          {{-     if eq .Values.flow_persistence.mode "git" }}
-            - { mountPath: /mnt/nifireg-flow_git,     name: "nifireg-single", subPath: "nifireg/flow_git"     }
-          {{-     end }}
-          {{-   end }}
-          {{- else }}
-            # # persistence enabled, non single disk
-            # - name: "nifireg-conf"
-            #   ...
-            # - name: "nifireg-database"
-            #   ...
-            # - name: "nifireg-logs"
-            #   ...
-            # - name: "nifireg-flow_storage"
-            #   ...
-          {{-   if .Values.flow_persistence.mode }}
-          {{-     if eq .Values.flow_persistence.mode "git" }}
-            # - name: "nifireg-flow_git"
-            #   ...
-          {{-     end }}
-          {{-   end }}
-          {{- end }}
-          {{- else }}
-            # persistence disabled
-          {{- end }}
-
       volumes:
       {{- if .Values.persistence.enabled }}
       {{- if and  .Values.persistence.nifiSingleDisk .Values.persistence.nifiSingleDisk.enabled }}

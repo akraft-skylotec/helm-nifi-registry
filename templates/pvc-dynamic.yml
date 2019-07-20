@@ -17,7 +17,7 @@ spec:
   storageClassName: {{ .Values.persistence.nifiSingleDisk.dynamic.storageClass | quote }}
 
   accessModes:
-    - {{ .Values.persistence.nifiSingleDisk.dynamic.accessModes | default "ReadWriteOnce" }}
+    - {{ .Values.persistence.nifiSingleDisk.dynamic.accessModes | default "ReadWriteMany" }}
 
   resources:
     requests:

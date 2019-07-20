@@ -15,7 +15,7 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   accessModes:
-    - {{ .Values.persistence.nifiSingleDisk.existingPV.accessModes |default "ReadWriteOnce" }}
+    - {{ .Values.persistence.nifiSingleDisk.existingPV.accessModes |default "ReadWriteMany" }}
   storageClassName: "{{ .Values.persistence.nifiSingleDisk.existingPV.storageClass |default "slow" }}"
   resources:
     requests:
