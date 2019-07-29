@@ -6,7 +6,7 @@
 
 This Helm Chart install NIFI Registry into your Kubernetes cluster.
 
-# Install 
+# Install
 
 You must have installed Helm into Kubernetes cluster.
 
@@ -34,4 +34,3 @@ To install [Apache NIFI Registry](https://nifi.apache.org/registry.html) into yo
 ```
 helm install --name nifi-registry --namespace nifi -f values.yml kronops/helm-nifi-registry
 ```
-

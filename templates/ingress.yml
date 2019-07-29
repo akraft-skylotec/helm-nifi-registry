@@ -1,16 +1,15 @@
 {{- if .Values.ingress.enabled -}}
-{{- $serviceName := include "nifireg.svcname" . -}}
-{{- $servicePort := 80 -}}
+{{- $serviceName := include "helm-nifi-registry.serviceName" . -}}
 apiVersion: extensions/v1beta1
 kind: Ingress
 # https://kubernetes.io/docs/concepts/services-networking/ingress/
 # https://docs.giantswarm.io/guides/advanced-ingress-configuration/
 # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/
 metadata:
-  name: "{{ template "nifireg.svcname" . }}"
+  name: "{{ template "helm-nifi-registry.fullname" . }}-in"
   namespace: "{{ .Release.Namespace }}"
   labels:
-    app: {{ include "nifireg.fullname" . |quote }}
+    app: {{ include "helm-nifi-registry.fullname" . |quote }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
     release: {{ .Release.Name | quote }}
     heritage: {{ .Release.Service | quote }}
@@ -40,7 +39,7 @@ spec:
         - path: /
           backend:
             serviceName: {{ $serviceName }}
-            servicePort: {{ $servicePort }}
+            servicePort: {{ .Values.service.port }}
   {{- if .Values.ingress.tls }}
   tls:
 {{ toYaml .Values.ingress.tls | indent 4 }}

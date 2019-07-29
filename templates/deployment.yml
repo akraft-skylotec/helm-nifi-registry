@@ -1,32 +1,34 @@
-{{ $nifi_root := printf "%s%s" "/opt/nifi-registry/nifi-registry-" .Values.image.tag }}
+{{ $nifi_base := "/opt/nifi-registry" }}
+{{ $nifi_root := printf "%s/%s%s" $nifi_base "nifi-registry-" .Values.image.tag }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "nifireg.fullname" . }}
+  name: {{ template "helm-nifi-registry.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "nifireg.fullname" . }}
-    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+{{ include "helm-nifi-registry.labels" . | indent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ template "nifireg.fullname" . }}
-      release: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ include "helm-nifi-registry.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ template "nifireg.fullname" . }}
-        release: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ include "helm-nifi-registry.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       dnsPolicy: {{ .Values.dnsPolicy |default "ClusterFirst" }}
-
       initContainers:
         - name: init-dirs
-          # image: busybox
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          securityContext:
+            runAsUser: 0
           command:
             - /bin/bash
             - -c
@@ -34,6 +36,7 @@ spec:
                 set -x
                 set -e
                 echo '...0'
+                apt install git -y
                 cd {{ $nifi_root }}
                 ls -la .
                 ls -la ./conf/
@@ -108,7 +111,21 @@ spec:
           {{-     end }}
           {{-   end }}
 
+          {{-   if .Values.flow_persistence.mode }}
+          {{-     if eq .Values.flow_persistence.mode "postgres" }}
+                cd {{ $nifi_base }}/_live
+                ls -la ./libs/
+                cd libs
+                curl -k "{{ .Values.flow_persistence.postgres.downloadDriverURL }}{{ .Values.flow_persistence.postgres.driverFileName }}" -o "{{ .Values.flow_persistence.postgres.driverFileName }}"
+                pwd
+                ls -l
+          {{-     end }}
+          {{-   end }}
+                chown nifi:nifi -R {{ $nifi_base }}
+
           env:
+            - name: NIFI_REGISTRY_WEB_HTTP_PORT
+              value: "1010"
           {{- if .Values.persistence.enabled }}
           {{-   if .Values.flow_persistence.mode }}
           {{-     if eq .Values.flow_persistence.mode "git" }}
@@ -152,6 +169,12 @@ spec:
             - { mountPath: {{ $nifi_root }}/_live/flow_git,     name: "nifireg-single", subPath: "nifireg/flow_git"     }
           {{-     end }}
           {{-   end }}
+
+          {{-   if .Values.flow_persistence.mode }}
+          {{-     if eq .Values.flow_persistence.mode "postgres" }}
+            - { mountPath: {{ $nifi_base }}/_live/libs,     name: "nifireg-single", subPath: "nifireg/libs"     }
+          {{-     end }}
+          {{-   end }}
           {{- else }}
             # # persistence enabled, non single disk
             # - name: "nifireg-conf"
@@ -174,35 +197,34 @@ spec:
           {{- end }}
 
       containers:
-
-        - name: web
+        - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /nifi-registry
+              port: {{ .Values.service.targetPort }}
+          readinessProbe:
+            httpGet:
+              path: /nifi-registry
+              port: {{ .Values.service.targetPort }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
           command:
             - /bin/bash
             - -c
             - |
                 set -x
+                ls -l {{ $nifi_base }}/libs  ||true
+                ls -la ${NIFI_REGISTRY_HOME}/  ||true
                 ls -la ${NIFI_REGISTRY_HOME}/conf/providers.xml  ||true
-                # ls -la "${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.sh"  ||true
-                # echo "#!/bin/bash" >> "${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.x.sh"
-                # echo "set -x" >> "${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.x.sh"
-                # cat "${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.sh" >> ${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.x.sh
-                # rm "${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.sh"
-                # mv "${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.x.sh" "${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.sh"
-                ls -la "${NIFI_REGISTRY_BASE_DIR}/scripts/update_flow_provider.sh"  ||true
                 ${NIFI_REGISTRY_BASE_DIR}/scripts/start.sh
           env:
-            - { name: "NIFI_REGISTRY_WEB_HTTP_HOST", value: {{ (include "nifireg.svcname" .) | quote}}  }
-
-            # - AUTH=
-            # # - AUTH=tls
-            # # - AUTH=ldap
-          {{- if .Values.nifi_access_internal }}
-            - { name: "NIFI_REGISTRY_WEB_HTTP_HOST", value: {{ printf "%s.%s" (include "nifireg.svcname" .) .Release.Namespace }} }
-          {{- else }}
-            - { name: "NIFI_REGISTRY_WEB_HTTP_HOST", value: {{ .Values.ingress.host }} }
-          {{- end }}
+            - { name: "NIFI_REGISTRY_WEB_HTTP_HOST", value: {{ .Values.nifiRegistry.WebHttpHost |default "0.0.0.0" |quote}} }
             # - NIFI_REGISTRY_WEB_HTTP_PORT=443
             # # - NIFI_REGISTRY_WEB_HTTP_PORT=18080
             #
@@ -234,6 +256,16 @@ spec:
           {{-   end }}
           {{- end }}
 
+          {{-   if .Values.flow_persistence.mode }}
+          {{-     if eq .Values.flow_persistence.mode "postgres" }}
+            - { name: "NIFI_REGISTRY_DB_URL",  value: {{ .Values.flow_persistence.postgres.url |quote }} }
+            - { name: "NIFI_REGISTRY_DB_CLASS",  value: {{ .Values.flow_persistence.postgres.driverClass |quote }} }
+            - { name: "NIFI_REGISTRY_DB_DIR",  value: {{ .Values.flow_persistence.postgres.driverDirectory |quote }} }
+            - { name: "NIFI_REGISTRY_DB_USER",  value: {{ .Values.flow_persistence.postgres.userName |quote }} }
+            - { name: "NIFI_REGISTRY_DB_PASS",  value: {{ .Values.flow_persistence.postgres.password |quote }} }
+          {{-     end }}
+          {{-   end }}
+
             #
             # # - NIFI_REGISTRY_DB_URL=jdbc:h2:./database/nifi-registry-primary;AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE
             # # - NIFI_REGISTRY_DB_CLASS=org.h2.Driver
@@ -250,11 +282,6 @@ spec:
             # - TRUSTSTORE_TYPE=
             # - TRUSTSTORE_PASSWORD=
             # - INITIAL_ADMIN_IDENTITY=
-
-          ports:
-            - name: {{ .Values.portName |default "http" }}
-              containerPort: 18080
-
           volumeMounts:
           {{- if .Values.persistence.enabled }}
             # # persistence enabled...
@@ -267,6 +294,12 @@ spec:
           {{-   if .Values.flow_persistence.mode }}
           {{-     if eq .Values.flow_persistence.mode "git" }}
             - { mountPath: {{ $nifi_root }}/flow_git,     name: "nifireg-single", subPath: "nifireg/flow_git"     }
+          {{-     end }}
+          {{-   end }}
+
+          {{-   if .Values.flow_persistence.mode }}
+          {{-     if eq .Values.flow_persistence.mode "postgres" }}
+            - { mountPath: {{ $nifi_base }}/libs,     name: "nifireg-single", subPath: "nifireg/libs"     }
           {{-     end }}
           {{-   end }}
 
@@ -290,19 +323,25 @@ spec:
           {{- else }}
             # persistence disabled
           {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
 
       volumes:
       {{- if .Values.persistence.enabled }}
       {{- if and  .Values.persistence.nifiSingleDisk .Values.persistence.nifiSingleDisk.enabled }}
         - name: "nifireg-single"
           persistentVolumeClaim:
-      {{-   if .Values.persistence.nifiSingleDisk.existingPV }}
-            claimName: "{{ template "nifireg.svcname" . }}--single--pvc"
-      {{-   else if .Values.persistence.nifiSingleDisk.dynamic }}
-            claimName: "{{ template "nifireg.svcname" . }}--single--dyn-pvc"
-      {{-   else }}
-            claimName: "{{ template "nifireg.svcname" . }}--single--unknown-pvc"
-      {{-   end }}
+            claimName: {{ template "helm-nifi-registry.pvcName" . }}
       {{- else }}
         # # persistence enabled, non single disk
         # - name: "nifireg-conf"
